@@ -39,7 +39,7 @@ public class OrderServiceImp implements  OrderService{
         logger.info("*** Successfully sent to kafka");
         return ResponseEntity.status(HttpStatus.OK).body(productId);
     }
-    @KafkaListener(topics = "places-order-event")
+    @KafkaListener(topics = "places-order-event", containerFactory = "listenerContainerFactory")
     private void eventkaListener(ProductMessage productMessage){
         logger.info("*********** event : {}",productMessage.getName());
     }

@@ -1,17 +1,15 @@
 package com.kafka;
 
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.apache.kafka.clients.admin.NewTopic;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
-import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.config.TopicBuilder;
-import org.springframework.kafka.core.DefaultKafkaProducerFactory;
-import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.kafka.core.ProducerFactory;
+import org.springframework.kafka.core.*;
+import org.springframework.kafka.support.serializer.JsonDeserializer;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -55,14 +53,17 @@ public class KafkaConfig {
         config.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG,bootstrapServer);
         config.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, keySerializer);
         config.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, valueSerializer);
-        config.put(ProducerConfig.ACKS_CONFIG,"1");
+        config.put(ProducerConfig.ACKS_CONFIG,"all");
         config.put(ProducerConfig.RETRIES_CONFIG,retries);
         config.put(ProducerConfig.RETRY_BACKOFF_MS_CONFIG,backoff_ms);
         config.put(ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG,timeout);
         config.put(ProducerConfig.LINGER_MS_CONFIG,linger);
         config.put(ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG,requestTimeout);
+        config.put(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION,"5");
+        config.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG,true);
         return config;
     }
+
 
     @Bean
     ProducerFactory<String ,ProductMessage> producerFactory(){
@@ -74,6 +75,27 @@ public class KafkaConfig {
     }
 
 
+   //Consumer config
+    @Bean
+    ConsumerFactory<String,Object > consumerFactory(){
+        Map<String , Object> config = new HashMap<>();
+        config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,"localhost:9092");
+        config.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,"org.apache.kafka.common.serialization.StringDeserializer");
+        config.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,"org.springframework.kafka.support.serializer.JsonDeserializer");
+        config.put(ConsumerConfig.GROUP_ID_CONFIG,"my-consumer-group");
+        config.put(JsonDeserializer.TRUSTED_PACKAGES,"*");
+
+        return new DefaultKafkaConsumerFactory<>(config);
+    }
+
+    @Bean
+    ConcurrentKafkaListenerContainerFactory<String , Object> listenerContainerFactory(ConsumerFactory<String ,Object> consumerFactory){
+
+     ConcurrentKafkaListenerContainerFactory<String,Object> listenerContainerFactory = new ConcurrentKafkaListenerContainerFactory<>();
+     listenerContainerFactory.setConsumerFactory(consumerFactory);
+     return listenerContainerFactory;
+
+    }
 
 
 }
