@@ -9,7 +9,13 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.config.TopicBuilder;
 import org.springframework.kafka.core.*;
+import org.springframework.kafka.listener.DeadLetterPublishingRecoverer;
+import org.springframework.kafka.listener.DefaultErrorHandler;
+import org.springframework.kafka.support.serializer.ErrorHandlingDeserializer;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
+import org.springframework.kafka.transaction.KafkaTransactionManager;
+import org.springframework.util.backoff.BackOff;
+import org.springframework.util.backoff.FixedBackOff;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -61,18 +67,24 @@ public class KafkaConfig {
         config.put(ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG,requestTimeout);
         config.put(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION,"5");
         config.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG,true);
+//        config.put(ProducerConfig.TRANSACTIONAL_ID_CONFIG,"trans-1");
+
         return config;
     }
 
 
     @Bean
-    ProducerFactory<String ,ProductMessage> producerFactory(){
+    ProducerFactory<String ,Object> producerFactory(){
         return new DefaultKafkaProducerFactory<>(producerConfig());
     }
     @Bean
-    KafkaTemplate<String ,ProductMessage> kafkaTemplate(){
-        return  new KafkaTemplate<>(producerFactory());
+    KafkaTemplate<String ,Object> kafkaTemplate(ProducerFactory<String ,Object> producerFactory){
+        return  new KafkaTemplate<>(producerFactory);
     }
+//    @Bean
+//    KafkaTransactionManager<String,Object> kafkaTransactionManager( ProducerFactory<String ,Object> producerFactory){
+//        return  new KafkaTransactionManager<>(producerFactory);
+//    }
 
 
    //Consumer config
@@ -81,18 +93,24 @@ public class KafkaConfig {
         Map<String , Object> config = new HashMap<>();
         config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,"localhost:9092");
         config.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,"org.apache.kafka.common.serialization.StringDeserializer");
-        config.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,"org.springframework.kafka.support.serializer.JsonDeserializer");
+        config.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class);
+        config.put(ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS,JsonDeserializer.class);
+//        config.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,JsonDeserializer.class);
         config.put(ConsumerConfig.GROUP_ID_CONFIG,"my-consumer-group");
         config.put(JsonDeserializer.TRUSTED_PACKAGES,"*");
+//        config.put(ConsumerConfig.ISOLATION_LEVEL_CONFIG,"read_committed");
 
         return new DefaultKafkaConsumerFactory<>(config);
     }
 
     @Bean
-    ConcurrentKafkaListenerContainerFactory<String , Object> listenerContainerFactory(ConsumerFactory<String ,Object> consumerFactory){
-
+    ConcurrentKafkaListenerContainerFactory<String , Object> listenerContainerFactory(ConsumerFactory<String ,Object> consumerFactory,KafkaTemplate<String ,Object> kafkaTemplate){
+        DefaultErrorHandler errorHandler = new DefaultErrorHandler(new DeadLetterPublishingRecoverer(kafkaTemplate), new FixedBackOff(500,3));
+        errorHandler.addRetryableExceptions( RetryableException.class);
+        errorHandler.addNotRetryableExceptions(NotRetryableException.class);
      ConcurrentKafkaListenerContainerFactory<String,Object> listenerContainerFactory = new ConcurrentKafkaListenerContainerFactory<>();
      listenerContainerFactory.setConsumerFactory(consumerFactory);
+     listenerContainerFactory.setCommonErrorHandler(errorHandler);
      return listenerContainerFactory;
 
     }

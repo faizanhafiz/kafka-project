@@ -20,11 +20,13 @@ public class ProductController {
         this.orderService=orderService;
     }
     @PostMapping("addproduct")
-    public ResponseEntity<Object> addProduct(@RequestBody Product product){
+    public ResponseEntity<Object> addProduct(@RequestBody Product product) throws RetryableException {
        try{
+
            ResponseEntity<Object> response  = orderService.placeOrder(product);
            return  response;
-       }catch (Exception ex){
+       }
+       catch (Exception ex){
             logger.error("Error :",ex.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error happened"+ex.getMessage());
        }
