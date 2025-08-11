@@ -67,7 +67,7 @@ public class KafkaConfig {
         config.put(ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG,requestTimeout);
         config.put(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION,"5");
         config.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG,true);
-//        config.put(ProducerConfig.TRANSACTIONAL_ID_CONFIG,"trans-1");
+        config.put(ProducerConfig.TRANSACTIONAL_ID_CONFIG,"trans-1");
 
         return config;
     }
@@ -81,10 +81,10 @@ public class KafkaConfig {
     KafkaTemplate<String ,Object> kafkaTemplate(ProducerFactory<String ,Object> producerFactory){
         return  new KafkaTemplate<>(producerFactory);
     }
-//    @Bean
-//    KafkaTransactionManager<String,Object> kafkaTransactionManager( ProducerFactory<String ,Object> producerFactory){
-//        return  new KafkaTransactionManager<>(producerFactory);
-//    }
+    @Bean
+    KafkaTransactionManager<String,Object> kafkaTransactionManager( ProducerFactory<String ,Object> producerFactory){
+        return  new KafkaTransactionManager<>(producerFactory);
+    }
 
 
    //Consumer config
@@ -98,7 +98,7 @@ public class KafkaConfig {
 //        config.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,JsonDeserializer.class);
         config.put(ConsumerConfig.GROUP_ID_CONFIG,"my-consumer-group");
         config.put(JsonDeserializer.TRUSTED_PACKAGES,"*");
-//        config.put(ConsumerConfig.ISOLATION_LEVEL_CONFIG,"read_committed");
+        config.put(ConsumerConfig.ISOLATION_LEVEL_CONFIG,"read_committed");
 
         return new DefaultKafkaConsumerFactory<>(config);
     }

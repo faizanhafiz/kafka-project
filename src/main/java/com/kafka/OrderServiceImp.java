@@ -24,7 +24,7 @@ public class OrderServiceImp implements  OrderService{
         this.kafkaTemplate=kafkaTemplate;
     }
 
-//    @Transactional("kafkaTransactionManager")
+    @Transactional("kafkaTransactionManager")
     @Override
     public ResponseEntity<Object> placeOrder(Product product) throws ExecutionException, InterruptedException {
         String productId = UUID.randomUUID().toString();
@@ -35,7 +35,7 @@ public class OrderServiceImp implements  OrderService{
        record.headers().add("messageId",productId.toString().getBytes());
        SendResult<String,Object> sendResult = kafkaTemplate.send(record).get();
 
-//       if(true)throw  new RuntimeException("error happened");
+       if(true)throw  new RuntimeException("error happened");
 
 //       future.whenComplete((success,exception)->{
 //         if(success!=null){
